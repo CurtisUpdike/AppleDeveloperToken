@@ -10,30 +10,47 @@ public class TokenGenerator
     private readonly string _privateKey;
     private readonly string _teamId;
     private readonly string _keyId;
+    private readonly TimeSpan _timeValid;
 
-    public TokenGenerator(string privateKey, string teamId, string keyId)
+    public TokenGenerator(string privateKey, string teamId, string keyId, int secondsValid = 15777000)
     {
+        if (secondsValid > 15777000)
+        {
+            throw new ArgumentException("Must be less than 15777000 seconds (6 months).");
+        }
+
         _privateKey = FormatKey(privateKey);
         _teamId = teamId;
         _keyId = keyId;
+        _timeValid = new TimeSpan(secondsValid);
     }
 
-    public string Generate(TimeSpan timeSpan)
+    private string Generate()
     {
-        if (timeSpan.TotalSeconds > 15777000)
+        return GenerateToken(_privateKey, _teamId, _keyId, _timeValid);
+    }
+
+    public string Generate(TimeSpan timeValid)
+    {
+        if (timeValid.TotalSeconds > 15777000)
         {
             throw new ArgumentException("TimeSpan must be less than 15777000 seconds (6 months).");
         }
 
+        return GenerateToken(_privateKey, _teamId, _keyId, timeValid);
+    }
+
+    private static string GenerateToken(string privateKey, string teamId, string keyId, TimeSpan timeValid)
+    {
         var now = DateTime.UtcNow;
-        var algorithm = CreateAlgorithm(_privateKey);
-        var signingCredentials = CreateSigningCredentials(_keyId, algorithm);
+        var algorithm = CreateAlgorithm(privateKey);
+        var signingCredentials = CreateSigningCredentials(keyId, algorithm);
         var tokenDescriptor = new SecurityTokenDescriptor()
         {
-            Issuer = _teamId,
+            Issuer = teamId,
             IssuedAt = now,
             NotBefore = now,
-            Expires = now.Add(timeSpan),
+            Expires = now.Add(timeValid),
             SigningCredentials = signingCredentials
         };
 
