@@ -14,11 +14,7 @@ public class TokenGenerator
 
     public TokenGenerator(string privateKey, string teamId, string keyId, int secondsValid = 15777000)
     {
-        if (secondsValid > 15777000)
-        {
-            throw new ArgumentException("Must be less than 15777000 seconds (6 months).");
-        }
-
+        ValidateTime(secondsValid);
         _privateKey = FormatKey(privateKey);
         _teamId = teamId;
         _keyId = keyId;
@@ -30,13 +26,16 @@ public class TokenGenerator
         return GenerateToken(_privateKey, _teamId, _keyId, _timeValid);
     }
 
+    public string Generate(int secondsValid)
+    {
+        ValidateTime(secondsValid);
+        return GenerateToken(_privateKey, _teamId, _keyId, new TimeSpan(secondsValid));
+
+    }
+
     public string Generate(TimeSpan timeValid)
     {
-        if (timeValid.TotalSeconds > 15777000)
-        {
-            throw new ArgumentException("TimeSpan must be less than 15777000 seconds (6 months).");
-        }
-
+        ValidateTime(timeValid.Seconds);
         return GenerateToken(_privateKey, _teamId, _keyId, timeValid);
     }
 
@@ -69,6 +68,14 @@ public class TokenGenerator
     {
         var key = new ECDsaSecurityKey(algorithm) { KeyId = keyId };
         return new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256);
+    }
+
+    private static void ValidateTime(int seconds)
+    {
+        if (seconds > 15777000)
+        {
+            throw new ArgumentException("Must be less than 15777000 seconds (6 months).");
+        }
     }
 
     private static string FormatKey(string key)
