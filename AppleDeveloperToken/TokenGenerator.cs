@@ -25,7 +25,7 @@ public class TokenGenerator
         _timeValid = new TimeSpan(secondsValid);
     }
 
-    private string Generate()
+    public string Generate()
     {
         return GenerateToken(_privateKey, _teamId, _keyId, _timeValid);
     }
