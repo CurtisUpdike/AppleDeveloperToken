@@ -7,46 +7,42 @@ namespace AppleDeveloperToken;
 public class TokenGenerator
 {
     private static readonly JwtSecurityTokenHandler _tokenHandler = new();
-    private readonly string _privateKey;
-    private readonly string _teamId;
-    private readonly string _keyId;
+    private readonly AppleAccount _account;
     private readonly TimeSpan _timeValid;
 
     public TokenGenerator(string privateKey, string teamId, string keyId, int secondsValid = 15777000)
     {
         ValidateTime(secondsValid);
-        _privateKey = FormatKey(privateKey);
-        _teamId = teamId;
-        _keyId = keyId;
+        _account = new(teamId, keyId, FormatKey(privateKey));
         _timeValid = new TimeSpan(secondsValid);
     }
 
     public string Generate()
     {
-        return GenerateToken(_privateKey, _teamId, _keyId, _timeValid);
+        return GenerateToken(_account, _timeValid);
     }
 
     public string Generate(int secondsValid)
     {
         ValidateTime(secondsValid);
-        return GenerateToken(_privateKey, _teamId, _keyId, new TimeSpan(secondsValid));
+        return GenerateToken(_account, new TimeSpan(secondsValid));
 
     }
 
     public string Generate(TimeSpan timeValid)
     {
         ValidateTime(timeValid.Seconds);
-        return GenerateToken(_privateKey, _teamId, _keyId, timeValid);
+        return GenerateToken(_account, timeValid);
     }
 
-    private static string GenerateToken(string privateKey, string teamId, string keyId, TimeSpan timeValid)
+    private static string GenerateToken(AppleAccount account, TimeSpan timeValid)
     {
         var now = DateTime.UtcNow;
-        var algorithm = CreateAlgorithm(privateKey);
-        var signingCredentials = CreateSigningCredentials(keyId, algorithm);
-        var tokenDescriptor = new SecurityTokenDescriptor()
+        var algorithm = CreateAlgorithm(account.PrivateKey);
+        var signingCredentials = CreateSigningCredentials(account.KeyId, algorithm);
+        var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Issuer = teamId,
+            Issuer = account.TeamId,
             IssuedAt = now,
             NotBefore = now,
             Expires = now.Add(timeValid),
