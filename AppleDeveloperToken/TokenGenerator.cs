@@ -8,18 +8,27 @@ public class TokenGenerator
 {
     private static readonly JwtSecurityTokenHandler _tokenHandler = new();
     private readonly AppleAccount _account;
-    private readonly TimeSpan _timeValid;
+    private int _secondsValid;
+    public int SecondsValid
+    {
+        get { return _secondsValid; }
+        set
+        {
+            ValidateTime(value);
+            _secondsValid = value;
+        }
+    }
 
     public TokenGenerator(string privateKey, string teamId, string keyId, int secondsValid = 15777000)
     {
         ValidateTime(secondsValid);
         _account = new(teamId, keyId, FormatKey(privateKey));
-        _timeValid = new TimeSpan(secondsValid);
+        _secondsValid = secondsValid;
     }
 
     public string Generate()
     {
-        return GenerateToken(_account, _timeValid);
+        return GenerateToken(_account, new TimeSpan(SecondsValid));
     }
 
     public string Generate(int secondsValid)
