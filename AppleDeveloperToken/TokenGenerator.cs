@@ -7,33 +7,54 @@ namespace AppleDeveloperToken;
 public class TokenGenerator
 {
     private static readonly JwtSecurityTokenHandler _tokenHandler = new();
-    private readonly string _privateKey;
-    private readonly string _teamId;
-    private readonly string _keyId;
-
-    public TokenGenerator(string privateKey, string teamId, string keyId)
+    private readonly AppleAccount _account;
+    private int _secondsValid;
+    public int SecondsValid
     {
-        _privateKey = FormatKey(privateKey);
-        _teamId = teamId;
-        _keyId = keyId;
+        get { return _secondsValid; }
+        set
+        {
+            ValidateTime(value);
+            _secondsValid = value;
+        }
     }
 
-    public string Generate(TimeSpan timeSpan)
+    public TokenGenerator(string privateKey, string teamId, string keyId, int secondsValid = 15777000)
     {
-        if (timeSpan.TotalSeconds > 15777000)
-        {
-            throw new ArgumentException("TimeSpan must be less than 15777000 seconds (6 months).");
-        }
+        ValidateTime(secondsValid);
+        _account = new(teamId, keyId, FormatKey(privateKey));
+        _secondsValid = secondsValid;
+    }
 
+    public string Generate()
+    {
+        return GenerateToken(_account, new TimeSpan(SecondsValid));
+    }
+
+    public string Generate(int secondsValid)
+    {
+        ValidateTime(secondsValid);
+        return GenerateToken(_account, new TimeSpan(secondsValid));
+
+    }
+
+    public string Generate(TimeSpan timeValid)
+    {
+        ValidateTime(timeValid.Seconds);
+        return GenerateToken(_account, timeValid);
+    }
+
+    private static string GenerateToken(AppleAccount account, TimeSpan timeValid)
+    {
         var now = DateTime.UtcNow;
-        var algorithm = CreateAlgorithm(_privateKey);
-        var signingCredentials = CreateSigningCredentials(_keyId, algorithm);
-        var tokenDescriptor = new SecurityTokenDescriptor()
+        var algorithm = CreateAlgorithm(account.PrivateKey);
+        var signingCredentials = CreateSigningCredentials(account.KeyId, algorithm);
+        var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Issuer = _teamId,
+            Issuer = account.TeamId,
             IssuedAt = now,
             NotBefore = now,
-            Expires = now.Add(timeSpan),
+            Expires = now.Add(timeValid),
             SigningCredentials = signingCredentials
         };
 
@@ -52,6 +73,14 @@ public class TokenGenerator
     {
         var key = new ECDsaSecurityKey(algorithm) { KeyId = keyId };
         return new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256);
+    }
+
+    private static void ValidateTime(int seconds)
+    {
+        if (seconds > 15777000)
+        {
+            throw new ArgumentException("Must be less than 15777000 seconds (6 months).");
+        }
     }
 
     private static string FormatKey(string key)
