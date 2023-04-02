@@ -15,7 +15,7 @@ See [Apple's documentation](https://developer.apple.com/documentation/applemusic
 ```csharp
 using AppleDeveloperToken;
 
-var tokenGenerator = new TokenGenerator(privateKey, teamId, keyId);
-var timeValid = TimeSpan.FromDays(1);
-var token = tokenGenerator.Generate(timeValid);
+// Expiration time must not be greater than 15777000 (6 months in seconds)
+var tokenGenerator = new TokenGenerator(privateKey, teamId, keyId, secondsValid);
+var token = tokenGenerator.Generate();
 ```
